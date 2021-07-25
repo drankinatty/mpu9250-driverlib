@@ -18,12 +18,9 @@
 
 #define EUSCI_I2C_MODULE                  EUSCI_B0_BASE
 #define EUSCI_I2C_PORT                    GPIO_PORT_P1
-// #define EUSCI_I2C_PORT                    GPIO_PORT_P6
 #define EUSCI_I2C_SCL_PIN                 GPIO_PIN7
-// #define EUSCI_I2C_SCL_PIN                 GPIO_PIN5
 #define EUSCI_I2C_SCL_PIN_FUNCTION        GPIO_PRIMARY_MODULE_FUNCTION
 #define EUSCI_I2C_SDA_PIN                 GPIO_PIN6
-// #define EUSCI_I2C_SDA_PIN                 GPIO_PIN4
 #define EUSCI_I2C_SDA_PIN_FUNCTION        GPIO_PRIMARY_MODULE_FUNCTION
 #define EUSCI_I2C_STATUS_SLAVE_NACK       1
 
@@ -240,12 +237,12 @@ void mpu9250_initialize (int gyro_fs_sel, int accel_fs_sel)
 
 }
 
-/***
- *   Initialize the AK8963 magnetometer CNTL1 by placing the magnetometer in FUSE mode
- *   to read the Axis Sensitivity Adjustment (ASA) values from FUSE_ROM, power-down
- *   the chip between mode changes and then place the magnetometer in 16-bit adc and
- *   continual measurement 2 for normal operations. Save the computed adjustments
- *   factors in asax, asay, asaz. (Page 51 & 52 of Register_Map)
+/**
+ *  Initialize the AK8963 magnetometer CNTL1 by placing the magnetometer in FUSE mode
+ *  to read the Axis Sensitivity Adjustment (ASA) values from FUSE_ROM, power-down
+ *  the chip between mode changes and then place the magnetometer in 16-bit adc and
+ *  continual measurement 2 for normal operations. Save the computed adjustments
+ *  factors in asax, asay, asaz. (Page 51 & 52 of Register_Map)
  */
 void ak8963_initialize (void)
 {
@@ -502,15 +499,25 @@ void mpu9250_get_ang_accel (float *gx, float *gy, float *gz)
 }
 
 /**
- *  Get raw magnetometer orientation values
+ *  Get raw magnetometer orientation values, add limit to prevent
+ *  hang on bad chip.
  */
+#define DRDY_LIMIT  128
 void get_orientation (int16_t *mx, int16_t *my, int16_t *mz)
 {
-    readI2C (AK8963_DEFAULT_ADDRESS, AK8963_STI, buffer, 8);
+    uint_fast8_t n = 0;
 
-    *mx = buffer[1] | (buffer[2] << 8);
-    *my = buffer[3] | (buffer[4] << 8);
-    *mz = buffer[5] | (buffer[6] << 8);
+    do {    /* read AK8963_STI (status 1) until DRDY 1 (data ready) */
+        readI2C (AK8963_DEFAULT_ADDRESS, AK8963_STI, buffer, 1);
+        n += 1;
+    } while (!buffer[0] && n < DRDY_LIMIT);
+
+    /* read magnetometer values and AK8963_ST2 that follows */
+    readI2C (AK8963_DEFAULT_ADDRESS, AK8963_HXL, buffer, 7);
+
+    *mx = buffer[0] | (buffer[1] << 8);
+    *my = buffer[2] | (buffer[3] << 8);
+    *mz = buffer[4] | (buffer[5] << 8);
 
     if (*mx > 32768) { *mx -= 65536; }
     if (*my > 32768) { *my -= 65536; }

@@ -24,6 +24,13 @@
 #define EUSCI_I2C_SDA_PIN_FUNCTION        GPIO_PRIMARY_MODULE_FUNCTION
 #define EUSCI_I2C_STATUS_SLAVE_NACK       1
 
+/** alternatie EUSCI_B1_BASE I2C config */
+// #define EUSCI_I2C_MODULE                  EUSCI_B1_BASE
+// #define EUSCI_I2C_PORT                    GPIO_PORT_P6
+// #define EUSCI_I2C_SCL_PIN                 GPIO_PIN5
+// #define EUSCI_I2C_SDA_PIN                 GPIO_PIN4
+
+
 /**
  *  gyro and accel sensitivity set during init from FS_SEL value provided, or
  *  set to default values of 250 deg/sec and 2 g if the default initialize function
@@ -128,7 +135,7 @@ void initI2C (void)
     //                             EUSCI_B_I2C_RECEIVE_INTERRUPT0);
 
     /* Set master in transmit mode */
-    MAP_I2C_setMode (EUSCI_B0_BASE, EUSCI_B_I2C_TRANSMIT_MODE);
+    MAP_I2C_setMode (EUSCI_I2C_MODULE, EUSCI_B_I2C_TRANSMIT_MODE);
 
     /* Enable I2C Module to start operations */
     MAP_I2C_enableModule (EUSCI_I2C_MODULE);
@@ -313,7 +320,8 @@ bool ak8963_checkI2C (void)
 /**
  *  Get raw acceleration values for linear and angular accelerations.
  */
-void get_accel (int16_t *ax, int16_t *ay, int16_t *az, int16_t *gx, int16_t *gy, int16_t *gz)
+void get_accel (int16_t *ax, int16_t *ay, int16_t *az,
+                int16_t *gx, int16_t *gy, int16_t *gz)
 {
     readI2C (MPU9250_devAddr, MPU9250_ACCEL_XOUT_H, buffer, 14);
 
